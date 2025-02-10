@@ -179,7 +179,7 @@
             csv_content: csvContent,  // 这里只包含评分数据
             to_email: emailRecipient
         }).then(() => {
-            alert("Results successfully sent via Email! Click Confirm and obtain the completion code in page");
+            alert("Successful! Click confirm and show the completion code in page.");
             isEmailSent = true;
             document.getElementById("completion-code").classList.remove("hidden");
         }).catch(error => {
