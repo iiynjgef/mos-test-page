@@ -29,6 +29,7 @@
         <audio id="audio" controls></audio>
 
         <hr>
+        <hr>
         <p><strong>2. Press the score you have chosen:</strong></p>
         <div class="score-buttons" id="score-buttons">
             <button id="score-1" onclick="submitScore(1)">1 Bad</button>
@@ -38,7 +39,7 @@
             <button id="score-5" onclick="submitScore(5)">5 Excellent</button>
         </div>
 
-        <!-- Rating guide -->
+        <!-- 评分标准说明 -->
         <div class="rating-guide">
             <ul style="text-align: left; display: inline-block;">
                 <li><strong>5 Excellent</strong> - Completely natural speech</li>
@@ -49,6 +50,7 @@
             </ul>
         </div>
         
+        <hr>
         <hr>
         <p><strong>3. Go to the next sample:</strong></p>
         <div class="nav-buttons">
@@ -61,9 +63,7 @@
             <button id="send-email" onclick="sendResults()">Send Results via Email</button>
             <div id="completion-code" class="hidden">
                 <p>Your completion code:</p>
-                <div style="background-color: lightgray; padding: 10px; font-size: 18px;">
-                    <span id="completion-code-value"></span> <!-- 确保代码显示 -->
-                </div>
+                <div style="background-color: lightgray; padding: 10px; font-size: 18px;">ABC123XYZ789DEF0</div>
             </div>
         </div>
     </div>
@@ -80,6 +80,8 @@
 
     // 获取 URL 参数
     const csvUrl = getQueryParam("csv") || "https://interspeech2025mostest.s3.ap-northeast-2.amazonaws.com/25-02-08_samples_test_set150_clean_358_syn/test_5.csv";
+    // const workerId = getQueryParam("workerId") || "unknown_worker";
+    // const assignmentId = getQueryParam("assignmentId") || "unknown_assignment";
 
     // Email 配置
     const emailRecipient = "feng.jingyi@g.sp.m.is.nagoya-u.ac.jp";
@@ -125,23 +127,27 @@
             document.getElementById("progress").classList.add("hidden");
             document.getElementById("prev").classList.add("hidden");
             document.getElementById("next").classList.add("hidden");
-
+    
             // 显示生成的 survey_code
             document.getElementById("completion-code-value").innerText = survey_code;
-            document.getElementById("completion-code").classList.remove("hidden");
-
             return;
         }
         document.getElementById("text").innerText = samples[currentIndex].text;
         document.getElementById("audio").src = samples[currentIndex].audio_url;
-
+        
         document.getElementById("next").classList.add("hidden");
-
+    
         // 更新进度显示
-        document.getElementById("progress").innerText = `Progress: ${currentIndex + 1} / ${samples.length}`;
-
-        document.getElementById("prev").classList.toggle("hidden", currentIndex === 0);
-
+        document.getElementById("progress").innerText = Progress: ${currentIndex + 1} / ${samples.length};
+    
+        // 控制 Previous 按钮的可见性
+        if (currentIndex > 0) {
+            document.getElementById("prev").classList.remove("hidden");
+        } else {
+            document.getElementById("prev").classList.add("hidden");
+        }
+    
+        // 清除上一个样本的选中状态
         selectedScore = null;
         updateScoreButtons();
     }
@@ -149,36 +155,69 @@
     function submitScore(score) {
         selectedScore = score;
 
-        responses.push({
-            index: samples[currentIndex]?.index || currentIndex, // 处理空值情况
-            audio_url: samples[currentIndex].audio_url,
-            text: samples[currentIndex].text,
-            score
-        });
+        let existingResponseIndex = responses.findIndex(r => r.index === samples[currentIndex].index);
+        if (existingResponseIndex !== -1) {
+            responses[existingResponseIndex].score = score;
+        } else {
+            responses.push({
+                index: samples[currentIndex].index,
+                audio_url: samples[currentIndex].audio_url,
+                text: samples[currentIndex].text,
+                score
+            });
+        }
 
         updateScoreButtons();
         document.getElementById("next").classList.remove("hidden");
     }
 
     function updateScoreButtons() {
-        document.querySelectorAll(".score-buttons button").forEach(btn => btn.classList.remove("selected"));
-        document.getElementById(`score-${selectedScore}`)?.classList.add("selected");
+        for (let i = 1; i <= 5; i++) {
+            let button = document.getElementById(score-${i});
+            if (selectedScore === i) {
+                button.classList.add("selected");
+            } else {
+                button.classList.remove("selected");
+            }
+        }
+    }
+
+    function nextSample() {
+        currentIndex++;
+        showSample();
+    }
+
+    function prevSample() {
+        if (currentIndex > 0) {
+            currentIndex--;
+            showSample();
+        }
     }
 
     function sendResults() {
+        let csvContent = "index,audio_url,text,score\n" +
+            responses.map(e => ${e.index},${e.audio_url},"${e.text}",${e.score}).join("\n");
+    
+        let userId = csv_url:${csvUrl}, survey_code:${survey_code};
+    
         emailjs.send(serviceID, templateID, {
-            user_id: `csv_url:${csvUrl}, survey_code:${survey_code}`,
-            csv_content: responses.map(e => `${e.index},${e.audio_url},"${e.text}",${e.score}`).join("\n"),
+            user_id: userId,  // 这里只包含 csv_url 和 survey_code
+            csv_content: csvContent,  // 这里只包含评分数据
             to_email: emailRecipient
         }).then(() => {
-            alert("Successful! Your completion code is now visible.");
+            alert("Successful! Click confirm and show the completion code in page.");
+            isEmailSent = true;
             document.getElementById("completion-code-value").innerText = survey_code;
             document.getElementById("completion-code").classList.remove("hidden");
+        }).catch(error => {
+            console.error("Email sending failed:", error);
+            alert("Failed to send results via Email. Please try again.");
         });
     }
 
+    // 加载 CSV
     loadCSV();
-    </script>
+</script>
 
 </body>
 </html>
