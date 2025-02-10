@@ -62,8 +62,10 @@
             <h3>Thank you for completing the test!</h3>
             <button id="send-email" onclick="sendResults()">Send Results via Email</button>
             <div id="completion-code" class="hidden">
-                <p>Your completion code:</p>
-                <div style="background-color: lightgray; padding: 10px; font-size: 18px;">${survey_code}</div>
+                <p>Your survey code:</p>
+                <div style="background-color: lightgray; padding: 10px; font-size: 18px;">
+                    <p id="completion-code-value">?</p>
+                </div>
             </div>
         </div>
     </div>
