@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOS Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        .container { max-width: 600px; margin: auto; padding: 20px; }
+        audio { width: 100%; margin-bottom: 10px; }
+        .score-buttons { display: flex; justify-content: center; gap: 10px; margin-top: 10px; }
+        .score-buttons button { padding: 10px 15px; cursor: pointer; border: 1px solid gray; background: white; }
+        .score-buttons button.selected { background: blue; color: white; }
+        .hidden { display: none; }
+        .progress { font-weight: bold; margin-top: 10px; }
+        .nav-buttons { display: flex; justify-content: space-between; margin-top: 20px; }
+        .nav-buttons button { padding: 15px 20px; font-size: 18px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>MOS Test</h2>
+        <p id="progress" class="progress">Loading...</p>  
+        <p id="text">Loading sample...</p>
+        <audio id="audio" controls></audio>
+        
+        <div class="score-buttons" id="score-buttons">
+            <button id="score-1" onclick="submitScore(1)">1</button>
+            <button id="score-2" onclick="submitScore(2)">2</button>
+            <button id="score-3" onclick="submitScore(3)">3</button>
+            <button id="score-4" onclick="submitScore(4)">4</button>
+            <button id="score-5" onclick="submitScore(5)">5</button>
+        </div>
+
+        <div class="nav-buttons">
+            <button id="prev" onclick="prevSample()" class="hidden">Previous</button>
+            <button id="next" onclick="nextSample()" class="hidden">Next</button>
+        </div>
+
+        <div id="completion" class="hidden">
+            <h3>Thank you for completing the test!</h3>
+            <button id="send-email" onclick="sendResults()">Send Results via Email</button>
+            <div id="completion-code" class="hidden">
+                <p>Your completion code:</p>
+                <div style="background-color: lightgray; padding: 10px; font-size: 18px;">ABC123XYZ789DEF0</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // EmailJS 配置
+        emailjs.init("BYUOQyGhQ6lC6Iyvu");
+
+        // 解析 URL 参数获取 CSV 地址
+        function getQueryParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+
+        // 从 URL 获取 CSV 参数，如果没有则使用默认值
+        const csvUrl = getQueryParam("csv") || "https://interspeech2025mostest.s3.ap-northeast-2.amazonaws.com/25-02-08_samples_test_set150_clean_358_syn/test_5.csv";
+
+        const emailRecipient = "feng.jingyi@g.sp.m.is.nagoya-u.ac.jp";
+        const serviceID = "service_mehm9io";
+        const templateID = "template_jjjhiqm";
+        let samples = [];
+        let currentIndex = 0;
+        let responses = [];
+        let selectedScore = null;
+        let userId = `user_${Math.random().toString(36).substring(2, 10)}`;
+        let isEmailSent = false;
+
+        async function loadCSV() {
+            console.log("Loading CSV from:", csvUrl);
+            const response = await fetch(csvUrl);
+            const text = await response.text();
+            Papa.parse(text, {
+                header: true,
+                skipEmptyLines: true,
+                complete: (result) => {
+                    console.log("CSV Parsing Result:", result.data);
+                    if (result.data.length > 0) {
+                        samples = result.data;
+                        showSample();
+                    } else {
+                        console.error("CSV 文件为空或解析失败");
+                    }
+                }
+            });
+        }
+
+        function showSample() {
+            if (currentIndex >= samples.length) {
+                document.getElementById("completion").classList.remove("hidden");
+                document.getElementById("score-buttons").classList.add("hidden");
+                document.getElementById("progress").classList.add("hidden");
+                document.getElementById("prev").classList.add("hidden");
+                document.getElementById("next").classList.add("hidden");
+                return;
+            }
+            document.getElementById("text").innerText = samples[currentIndex].text;
+            document.getElementById("audio").src = samples[currentIndex].audio_url;
+            
+            document.getElementById("next").classList.add("hidden");
+
+            // 更新进度显示
+            document.getElementById("progress").innerText = `Progress: ${currentIndex + 1} / ${samples.length}`;
+
+            // 控制 Previous 按钮的可见性
+            if (currentIndex > 0) {
+                document.getElementById("prev").classList.remove("hidden");
+            } else {
+                document.getElementById("prev").classList.add("hidden");
+            }
+
+            // 清除上一个样本的选中状态
+            selectedScore = null;
+            updateScoreButtons();
+        }
+
+        function submitScore(score) {
+            selectedScore = score;
+
+            let existingResponseIndex = responses.findIndex(r => r.index === samples[currentIndex].index);
+            if (existingResponseIndex !== -1) {
+                responses[existingResponseIndex].score = score;
+            } else {
+                responses.push({
+                    index: samples[currentIndex].index,
+                    audio_url: samples[currentIndex].audio_url,
+                    text: samples[currentIndex].text,
+                    score
+                });
+            }
+
+            updateScoreButtons();
+            document.getElementById("next").classList.remove("hidden");
+        }
+
+        function updateScoreButtons() {
+            for (let i = 1; i <= 5; i++) {
+                let button = document.getElementById(`score-${i}`);
+                if (selectedScore === i) {
+                    button.classList.add("selected");
+                } else {
+                    button.classList.remove("selected");
+                }
+            }
+        }
+
+        function nextSample() {
+            currentIndex++;
+            showSample();
+        }
+
+        function prevSample() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                showSample();
+            }
+        }
+
+        function sendResults() {
+            let csvContent = "index,audio_url,text,score\n" +
+                responses.map(e => `${e.index},${e.audio_url},"${e.text}",${e.score}`).join("\n");
+
+            emailjs.send(serviceID, templateID, {
+                user_id: userId,
+                csv_content: csvContent,
+                to_email: emailRecipient
+            }).then(() => {
+                alert("Results successfully sent via Email! Click Confirm and obtain the completion code in page");
+                isEmailSent = true;
+                document.getElementById("completion-code").classList.remove("hidden");
+            }).catch(error => {
+                console.error("Email sending failed:", error);
+                alert("Failed to send results via Email. Please try again.");
+            });
+        }
+
+        loadCSV();
+    </script>
+
+</body>
+</html>
