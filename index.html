@@ -51,138 +51,146 @@
     </div>
 
     <script>
-        // EmailJS 配置
-        emailjs.init("BYUOQyGhQ6lC6Iyvu");
+    // EmailJS 配置
+    emailjs.init("BYUOQyGhQ6lC6Iyvu");
 
-        // 解析 URL 参数获取 CSV 地址
-        function getQueryParam(param) {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get(param);
+    // 解析 URL 参数
+    function getQueryParam(param) {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(param);
+    }
+
+    // 获取 URL 参数
+    const csvUrl = getQueryParam("csv") || "https://interspeech2025mostest.s3.ap-northeast-2.amazonaws.com/25-02-08_samples_test_set150_clean_358_syn/test_5.csv";
+    const workerId = getQueryParam("workerId") || "unknown_worker";
+    const assignmentId = getQueryParam("assignmentId") || "unknown_assignment";
+
+    // Email 配置
+    const emailRecipient = "feng.jingyi@g.sp.m.is.nagoya-u.ac.jp";
+    const serviceID = "service_mehm9io";
+    const templateID = "template_jjjhiqm";
+
+    let samples = [];
+    let currentIndex = 0;
+    let responses = [];
+    let selectedScore = null;
+    let isEmailSent = false;
+
+    async function loadCSV() {
+        console.log("Loading CSV from:", csvUrl);
+        const response = await fetch(csvUrl);
+        const text = await response.text();
+        Papa.parse(text, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (result) => {
+                console.log("CSV Parsing Result:", result.data);
+                if (result.data.length > 0) {
+                    samples = result.data;
+                    showSample();
+                } else {
+                    console.error("CSV 文件为空或解析失败");
+                }
+            }
+        });
+    }
+
+    function showSample() {
+        if (currentIndex >= samples.length) {
+            document.getElementById("completion").classList.remove("hidden");
+            document.getElementById("score-buttons").classList.add("hidden");
+            document.getElementById("progress").classList.add("hidden");
+            document.getElementById("prev").classList.add("hidden");
+            document.getElementById("next").classList.add("hidden");
+            return;
+        }
+        document.getElementById("text").innerText = samples[currentIndex].text;
+        document.getElementById("audio").src = samples[currentIndex].audio_url;
+        
+        document.getElementById("next").classList.add("hidden");
+
+        // 更新进度显示
+        document.getElementById("progress").innerText = `Progress: ${currentIndex + 1} / ${samples.length}`;
+
+        // 控制 Previous 按钮的可见性
+        if (currentIndex > 0) {
+            document.getElementById("prev").classList.remove("hidden");
+        } else {
+            document.getElementById("prev").classList.add("hidden");
         }
 
-        // 从 URL 获取 CSV 参数，如果没有则使用默认值
-        const csvUrl = getQueryParam("csv") || "https://interspeech2025mostest.s3.ap-northeast-2.amazonaws.com/25-02-08_samples_test_set150_clean_358_syn/test_5.csv";
+        // 清除上一个样本的选中状态
+        selectedScore = null;
+        updateScoreButtons();
+    }
 
-        const emailRecipient = "feng.jingyi@g.sp.m.is.nagoya-u.ac.jp";
-        const serviceID = "service_mehm9io";
-        const templateID = "template_jjjhiqm";
-        let samples = [];
-        let currentIndex = 0;
-        let responses = [];
-        let selectedScore = null;
-        let userId = `user_${Math.random().toString(36).substring(2, 10)}`;
-        let isEmailSent = false;
+    function submitScore(score) {
+        selectedScore = score;
 
-        async function loadCSV() {
-            console.log("Loading CSV from:", csvUrl);
-            const response = await fetch(csvUrl);
-            const text = await response.text();
-            Papa.parse(text, {
-                header: true,
-                skipEmptyLines: true,
-                complete: (result) => {
-                    console.log("CSV Parsing Result:", result.data);
-                    if (result.data.length > 0) {
-                        samples = result.data;
-                        showSample();
-                    } else {
-                        console.error("CSV 文件为空或解析失败");
-                    }
-                }
+        let existingResponseIndex = responses.findIndex(r => r.index === samples[currentIndex].index);
+        if (existingResponseIndex !== -1) {
+            responses[existingResponseIndex].score = score;
+        } else {
+            responses.push({
+                worker_id: workerId,   // 添加 Worker ID
+                assignment_id: assignmentId,  // 添加 Assignment ID
+                index: samples[currentIndex].index,
+                audio_url: samples[currentIndex].audio_url,
+                text: samples[currentIndex].text,
+                score
             });
         }
 
-        function showSample() {
-            if (currentIndex >= samples.length) {
-                document.getElementById("completion").classList.remove("hidden");
-                document.getElementById("score-buttons").classList.add("hidden");
-                document.getElementById("progress").classList.add("hidden");
-                document.getElementById("prev").classList.add("hidden");
-                document.getElementById("next").classList.add("hidden");
-                return;
-            }
-            document.getElementById("text").innerText = samples[currentIndex].text;
-            document.getElementById("audio").src = samples[currentIndex].audio_url;
-            
-            document.getElementById("next").classList.add("hidden");
+        updateScoreButtons();
+        document.getElementById("next").classList.remove("hidden");
+    }
 
-            // 更新进度显示
-            document.getElementById("progress").innerText = `Progress: ${currentIndex + 1} / ${samples.length}`;
-
-            // 控制 Previous 按钮的可见性
-            if (currentIndex > 0) {
-                document.getElementById("prev").classList.remove("hidden");
+    function updateScoreButtons() {
+        for (let i = 1; i <= 5; i++) {
+            let button = document.getElementById(`score-${i}`);
+            if (selectedScore === i) {
+                button.classList.add("selected");
             } else {
-                document.getElementById("prev").classList.add("hidden");
-            }
-
-            // 清除上一个样本的选中状态
-            selectedScore = null;
-            updateScoreButtons();
-        }
-
-        function submitScore(score) {
-            selectedScore = score;
-
-            let existingResponseIndex = responses.findIndex(r => r.index === samples[currentIndex].index);
-            if (existingResponseIndex !== -1) {
-                responses[existingResponseIndex].score = score;
-            } else {
-                responses.push({
-                    index: samples[currentIndex].index,
-                    audio_url: samples[currentIndex].audio_url,
-                    text: samples[currentIndex].text,
-                    score
-                });
-            }
-
-            updateScoreButtons();
-            document.getElementById("next").classList.remove("hidden");
-        }
-
-        function updateScoreButtons() {
-            for (let i = 1; i <= 5; i++) {
-                let button = document.getElementById(`score-${i}`);
-                if (selectedScore === i) {
-                    button.classList.add("selected");
-                } else {
-                    button.classList.remove("selected");
-                }
+                button.classList.remove("selected");
             }
         }
+    }
 
-        function nextSample() {
-            currentIndex++;
+    function nextSample() {
+        currentIndex++;
+        showSample();
+    }
+
+    function prevSample() {
+        if (currentIndex > 0) {
+            currentIndex--;
             showSample();
         }
+    }
 
-        function prevSample() {
-            if (currentIndex > 0) {
-                currentIndex--;
-                showSample();
-            }
-        }
+    function sendResults() {
+        let csvContent = "worker_id,assignment_id,index,audio_url,text,score\n" +
+            responses.map(e => `${e.worker_id},${e.assignment_id},${e.index},${e.audio_url},"${e.text}",${e.score}`).join("\n");
 
-        function sendResults() {
-            let csvContent = "index,audio_url,text,score\n" +
-                responses.map(e => `${e.index},${e.audio_url},"${e.text}",${e.score}`).join("\n");
+        emailjs.send(serviceID, templateID, {
+            worker_id: workerId,
+            assignment_id: assignmentId,
+            csv_content: csvContent,
+            to_email: emailRecipient
+        }).then(() => {
+            alert("Results successfully sent via Email! Click Confirm and obtain the completion code in page");
+            isEmailSent = true;
+            document.getElementById("completion-code").classList.remove("hidden");
+        }).catch(error => {
+            console.error("Email sending failed:", error);
+            alert("Failed to send results via Email. Please try again.");
+        });
+    }
 
-            emailjs.send(serviceID, templateID, {
-                user_id: userId,
-                csv_content: csvContent,
-                to_email: emailRecipient
-            }).then(() => {
-                alert("Results successfully sent via Email! Click Confirm and obtain the completion code in page");
-                isEmailSent = true;
-                document.getElementById("completion-code").classList.remove("hidden");
-            }).catch(error => {
-                console.error("Email sending failed:", error);
-                alert("Failed to send results via Email. Please try again.");
-            });
-        }
+    // 加载 CSV
+    loadCSV();
+</script>
 
-        loadCSV();
-    </script>
 
 </body>
 </html>
