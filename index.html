@@ -28,18 +28,30 @@
         <audio id="audio" controls></audio>
         
         <div class="score-buttons" id="score-buttons">
-            <button id="score-1" onclick="submitScore(1)">1</button>
-            <button id="score-2" onclick="submitScore(2)">2</button>
-            <button id="score-3" onclick="submitScore(3)">3</button>
-            <button id="score-4" onclick="submitScore(4)">4</button>
-            <button id="score-5" onclick="submitScore(5)">5</button>
+            <button id="score-1" onclick="submitScore(1)">1 Bad</button>
+            <button id="score-2" onclick="submitScore(2)">2 Poor</button>
+            <button id="score-3" onclick="submitScore(3)">3 Fair</button>
+            <button id="score-4" onclick="submitScore(4)">4 Good</button>
+            <button id="score-5" onclick="submitScore(5)">5 Excellent</button>
         </div>
 
+        <!-- 评分标准说明 -->
+        <div class="rating-guide">
+            <p><strong>Listen to these examples to get an idea of how to rate:</strong></p>
+            <ul style="text-align: left; display: inline-block;">
+                <li><strong>5 Excellent</strong> - Completely natural speech</li>
+                <li><strong>4 Good</strong> - Mostly natural speech</li>
+                <li><strong>3 Fair</strong> - Equally natural and unnatural speech</li>
+                <li><strong>2 Poor</strong> - Mostly unnatural speech</li>
+                <li><strong>1 Bad</strong> - Completely unnatural speech</li>
+            </ul>
+        </div>
+        
         <div class="nav-buttons">
             <button id="prev" onclick="prevSample()" class="hidden">Previous</button>
             <button id="next" onclick="nextSample()" class="hidden">Next</button>
         </div>
-
+        
         <div id="completion" class="hidden">
             <h3>Thank you for completing the test!</h3>
             <button id="send-email" onclick="sendResults()">Send Results via Email</button>
@@ -62,8 +74,8 @@
 
     // 获取 URL 参数
     const csvUrl = getQueryParam("csv") || "https://interspeech2025mostest.s3.ap-northeast-2.amazonaws.com/25-02-08_samples_test_set150_clean_358_syn/test_5.csv";
-    const workerId = getQueryParam("workerId") || "unknown_worker";
-    const assignmentId = getQueryParam("assignmentId") || "unknown_assignment";
+    // const workerId = getQueryParam("workerId") || "unknown_worker";
+    // const assignmentId = getQueryParam("assignmentId") || "unknown_assignment";
 
     // Email 配置
     const emailRecipient = "feng.jingyi@g.sp.m.is.nagoya-u.ac.jp";
@@ -75,6 +87,13 @@
     let responses = [];
     let selectedScore = null;
     let isEmailSent = false;
+
+    // 生成 8 位随机数作为 survey_code
+    function generateSurveyCode() {
+        return Math.floor(10000000 + Math.random() * 90000000).toString();
+    }
+    
+    const survey_code = generateSurveyCode(); // 生成一次并存储
 
     async function loadCSV() {
         console.log("Loading CSV from:", csvUrl);
@@ -102,6 +121,9 @@
             document.getElementById("progress").classList.add("hidden");
             document.getElementById("prev").classList.add("hidden");
             document.getElementById("next").classList.add("hidden");
+
+            // 显示生成的 survey_code
+            document.getElementById("completion-code-value").innerText = survey_code;
             return;
         }
         document.getElementById("text").innerText = samples[currentIndex].text;
@@ -132,8 +154,6 @@
             responses[existingResponseIndex].score = score;
         } else {
             responses.push({
-                worker_id: workerId,   // 添加 Worker ID
-                assignment_id: assignmentId,  // 添加 Assignment ID
                 index: samples[currentIndex].index,
                 audio_url: samples[currentIndex].audio_url,
                 text: samples[currentIndex].text,
@@ -172,10 +192,10 @@
         let csvContent = "index,audio_url,text,score\n" +
             responses.map(e => `${e.index},${e.audio_url},"${e.text}",${e.score}`).join("\n");
     
-        let userId = `workerId:${workerId}, assignmentId:${assignmentId}, csvUrl:${csvUrl}`;
-    
+        let userId = `csv_url:${csvUrl}, survey_code:${survey_code}`;
+
         emailjs.send(serviceID, templateID, {
-            user_id: userId,  // 这里包含workerId, assignmentId 和 csvUrl
+            user_id: userId,  // 这里只包含 csv_url 和 survey_code
             csv_content: csvContent,  // 这里只包含评分数据
             to_email: emailRecipient
         }).then(() => {
@@ -191,7 +211,6 @@
     // 加载 CSV
     loadCSV();
 </script>
-
 
 </body>
 </html>
