@@ -169,13 +169,14 @@
     }
 
     function sendResults() {
-        let csvContent = "worker_id,assignment_id,index,audio_url,text,score\n" +
-            responses.map(e => `${e.worker_id},${e.assignment_id},${e.index},${e.audio_url},"${e.text}",${e.score}`).join("\n");
-
+        let csvContent = "index,audio_url,text,score\n" +
+            responses.map(e => `${e.index},${e.audio_url},"${e.text}",${e.score}`).join("\n");
+    
+        let userId = `workerId:${workerId}, assignmentId:${assignmentId}, csvUrl:${csvUrl}`;
+    
         emailjs.send(serviceID, templateID, {
-            worker_id: workerId,
-            assignment_id: assignmentId,
-            csv_content: csvContent,
+            user_id: userId,  // 这里包含workerId, assignmentId 和 csvUrl
+            csv_content: csvContent,  // 这里只包含评分数据
             to_email: emailRecipient
         }).then(() => {
             alert("Results successfully sent via Email! Click Confirm and obtain the completion code in page");
