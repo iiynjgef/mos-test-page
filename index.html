@@ -25,12 +25,8 @@
         <h2>MOS Test</h2>
         <p id="progress" class="progress">Loading...</p>  
         <p id="text">Loading sample...</p>
-        <p><strong>1. Listen to the example to get an idea of how to rate:</strong></p>
         <audio id="audio" controls></audio>
-
-        <hr>
-        <hr>
-        <p><strong>2. Press the score you have chosen:</strong></p>
+        
         <div class="score-buttons" id="score-buttons">
             <button id="score-1" onclick="submitScore(1)">1 Bad</button>
             <button id="score-2" onclick="submitScore(2)">2 Poor</button>
@@ -41,6 +37,7 @@
 
         <!-- 评分标准说明 -->
         <div class="rating-guide">
+            <p><strong>Listen to these examples to get an idea of how to rate:</strong></p>
             <ul style="text-align: left; display: inline-block;">
                 <li><strong>5 Excellent</strong> - Completely natural speech</li>
                 <li><strong>4 Good</strong> - Mostly natural speech</li>
@@ -50,9 +47,6 @@
             </ul>
         </div>
         
-        <hr>
-        <hr>
-        <p><strong>3. Go to the next sample:</strong></p>
         <div class="nav-buttons">
             <button id="prev" onclick="prevSample()" class="hidden">Previous</button>
             <button id="next" onclick="nextSample()" class="hidden">Next</button>
@@ -127,7 +121,7 @@
             document.getElementById("progress").classList.add("hidden");
             document.getElementById("prev").classList.add("hidden");
             document.getElementById("next").classList.add("hidden");
-    
+
             // 显示生成的 survey_code
             document.getElementById("completion-code-value").innerText = survey_code;
             return;
@@ -136,17 +130,17 @@
         document.getElementById("audio").src = samples[currentIndex].audio_url;
         
         document.getElementById("next").classList.add("hidden");
-    
+
         // 更新进度显示
-        document.getElementById("progress").innerText = Progress: ${currentIndex + 1} / ${samples.length};
-    
+        document.getElementById("progress").innerText = `Progress: ${currentIndex + 1} / ${samples.length}`;
+
         // 控制 Previous 按钮的可见性
         if (currentIndex > 0) {
             document.getElementById("prev").classList.remove("hidden");
         } else {
             document.getElementById("prev").classList.add("hidden");
         }
-    
+
         // 清除上一个样本的选中状态
         selectedScore = null;
         updateScoreButtons();
@@ -173,7 +167,7 @@
 
     function updateScoreButtons() {
         for (let i = 1; i <= 5; i++) {
-            let button = document.getElementById(score-${i});
+            let button = document.getElementById(`score-${i}`);
             if (selectedScore === i) {
                 button.classList.add("selected");
             } else {
@@ -196,10 +190,10 @@
 
     function sendResults() {
         let csvContent = "index,audio_url,text,score\n" +
-            responses.map(e => ${e.index},${e.audio_url},"${e.text}",${e.score}).join("\n");
+            responses.map(e => `${e.index},${e.audio_url},"${e.text}",${e.score}`).join("\n");
     
-        let userId = csv_url:${csvUrl}, survey_code:${survey_code};
-    
+        let userId = `csv_url:${csvUrl}, survey_code:${survey_code}`;
+
         emailjs.send(serviceID, templateID, {
             user_id: userId,  // 这里只包含 csv_url 和 survey_code
             csv_content: csvContent,  // 这里只包含评分数据
@@ -207,7 +201,6 @@
         }).then(() => {
             alert("Successful! Click confirm and show the completion code in page.");
             isEmailSent = true;
-            document.getElementById("completion-code-value").innerText = survey_code;
             document.getElementById("completion-code").classList.remove("hidden");
         }).catch(error => {
             console.error("Email sending failed:", error);
