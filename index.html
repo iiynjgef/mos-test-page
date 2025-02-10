@@ -24,9 +24,11 @@
     <div class="container">
         <h2>MOS Test</h2>
         <p id="progress" class="progress">Loading...</p>  
+        <p><strong>Listen to these examples to get an idea of how to rate:</strong></p>
         <p id="text">Loading sample...</p>
         <audio id="audio" controls></audio>
-        
+
+        <hr>
         <div class="score-buttons" id="score-buttons">
             <button id="score-1" onclick="submitScore(1)">1 Bad</button>
             <button id="score-2" onclick="submitScore(2)">2 Poor</button>
@@ -37,7 +39,6 @@
 
         <!-- 评分标准说明 -->
         <div class="rating-guide">
-            <p><strong>Listen to these examples to get an idea of how to rate:</strong></p>
             <ul style="text-align: left; display: inline-block;">
                 <li><strong>5 Excellent</strong> - Completely natural speech</li>
                 <li><strong>4 Good</strong> - Mostly natural speech</li>
@@ -46,6 +47,7 @@
                 <li><strong>1 Bad</strong> - Completely unnatural speech</li>
             </ul>
         </div>
+        <hr>
         
         <div class="nav-buttons">
             <button id="prev" onclick="prevSample()" class="hidden">Previous</button>
