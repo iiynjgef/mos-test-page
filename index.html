@@ -23,11 +23,14 @@
 
     <div class="container">
         <h2>MOS Test</h2>
-        <p id="progress" class="progress">Loading...</p>  
-        <p><strong>Listen to these examples to get an idea of how to rate:</strong></p>
+        <p id="progress" class="progress" style="text-align: left;">Loading...</p>  
+        <p style="text-align: left;"><strong>1. Listen to these examples to get an idea of how to rate:</strong></p>
+        <hr>
         <p id="text">Loading sample...</p>
         <audio id="audio" controls></audio>
-
+        <hr>
+        <hr>
+        <p style="text-align: left;"><strong>2. Press the button to rate:</strong></p>
         <hr>
         <div class="score-buttons" id="score-buttons">
             <button id="score-1" onclick="submitScore(1)">1 Bad</button>
@@ -48,7 +51,8 @@
             </ul>
         </div>
         <hr>
-        
+        <hr>
+        <p style="text-align: left;"><strong>3. To next sample: </strong></p>
         <div class="nav-buttons">
             <button id="prev" onclick="prevSample()" class="hidden">Previous</button>
             <button id="next" onclick="nextSample()" class="hidden">Next</button>
